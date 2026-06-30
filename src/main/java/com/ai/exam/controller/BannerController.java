@@ -89,4 +89,15 @@ public class BannerController {
             return Result.error("图片上传失败: " + e.getMessage());
         }
     }
+    @PostMapping("/add")
+    @Operation(summary = "添加轮播图", description = "创建新的轮播图，需要提供图片URL、标题、跳转链接等信息")
+    public Result<String> addBanner(@RequestBody Banner banner) {
+        return bannerService.addBanner(banner);
+    }
+
+    @PutMapping("/update")  // 处理PUT请求
+    @Operation(summary = "更新轮播图", description = "更新轮播图的信息，包括图片、标题、跳转链接、排序等")
+    public Result<String> updateBanner(@RequestBody Banner banner) {
+        return bannerService.updateBanner(banner);
+    }
 }

@@ -14,4 +14,8 @@ public interface BannerService extends IService<Banner> {
     Result<String> toggleBannerStatus(Long id, Boolean isActive);
 
     Result<String> deleteBanner(Long id);
+
+    Result<String> addBanner(Banner banner);
+
+    Result<String> updateBanner(Banner banner);
 }

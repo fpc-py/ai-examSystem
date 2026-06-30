@@ -69,4 +69,42 @@ public class BannerServiceImpl extends ServiceImpl<BannerMapper,Banner> implemen
             return Result.error("轮播图删除失败：" + e.getMessage());
         }
     }
+
+    @Override
+    public Result<String> addBanner(Banner banner) {
+        try {
+            banner.setCreateTime(LocalDateTime.now());
+            banner.setUpdateTime(LocalDateTime.now());
+            if (banner.getIsActive() == null) {
+                banner.setIsActive(true); // 默认启用
+            }
+            if (banner.getSortOrder() == null) {
+                banner.setSortOrder(0); // 默认排序
+            }
+
+            boolean success = this.save(banner);
+            if (success) {
+                return Result.success("轮播图添加成功");
+            } else {
+                return Result.error("轮播图添加失败");
+            }
+        } catch (Exception e) {
+            return Result.error("轮播图添加失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    public Result<String> updateBanner(Banner banner) {
+        try {
+            banner.setUpdateTime(LocalDateTime.now());
+            boolean success = this.updateById(banner);
+            if (success) {
+                return Result.success("轮播图更新成功");
+            } else {
+                return Result.error("轮播图更新失败");
+            }
+        } catch (Exception e) {
+            return Result.error("轮播图更新失败：" + e.getMessage());
+        }
+    }
 }
