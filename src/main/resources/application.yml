@@ -1,0 +1,66 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: smart-learning-platform
+
+
+
+  datasource:
+    driver-class-name: ${test.datasource.driver-class-name}
+    url: jdbc:mysql://${test.datasource.host}:${test.datasource.port}/${test.datasource.database}?useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Shanghai
+    username: ${test.datasource.username}
+    password: ${test.datasource.password}
+
+  data:
+    redis:
+      port: ${test.redis.port}
+      host: ${test.redis.host}
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss  # 日期格式
+    time-zone: GMT+8  # 时区设置
+    default-property-inclusion: NON_NULL  # 不序列化null值
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true  # 下划线转驼峰
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # SQL日志输出
+  global-config:
+    db-config:
+      id-type: auto  # 主键策略
+      logic-delete-field: deleted  # 逻辑删除字段
+      logic-delete-value: 1  # 逻辑删除值
+      logic-not-delete-value: 0  # 逻辑未删除值
+  mapper-locations: classpath*:/mapper/**/*.xml  # Mapper文件位置
+  type-aliases-package: com.ai.exam.entity
+
+logging:
+  level:
+    com.exam: debug  # 项目包路径的日志级别
+    org.springframework.web: debug  # Spring Web日志级别
+
+
+
+
+knife4j:
+  enable: true  # 启用Knife4j增强功能
+  openapi:
+    title: 🎓 智能考试系统API文档  # 文档标题
+    description: 📚 基于Spring Boot + MyBatis Plus开发的智能考试系统  # 文档描述
+    version: v1.0.0  # API版本
+    concat: 🏫 智能考试系统开发团队  # 联系人信息
+  setting:
+    language: zh_cn  # 界面语言设置为中文
+    enable-version: true  # 启用版本控制
+    enable-swagger-models: true  # 启用数据模型展示
+    enable-document-manage: true  # 启用文档管理功能
+    enable-reload-cache-parameter: false  # 禁用缓存重载参数
+    enable-after-script: true  # 启用afterScript功能
+    enable-filter-multipart-api-method-type: POST  # 过滤文件上传接口的请求方式
+    enable-filter-multipart-apis: false  # 不过滤文件上传接口
+    enable-request-cache: true  # 启用请求缓存
+    enable-host: false  # 禁用host显示
