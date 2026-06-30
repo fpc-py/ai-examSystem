@@ -25,6 +25,11 @@ spring:
     time-zone: GMT+8  # 时区设置
     default-property-inclusion: NON_NULL  # 不序列化null值
 
+  servlet:
+    multipart:
+      max-file-size: 150MB   # 单个文件最大150MB
+      max-request-size: 150MB # 单次请求最大150MB
+
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true  # 下划线转驼峰
@@ -64,3 +69,10 @@ knife4j:
     enable-filter-multipart-apis: false  # 不过滤文件上传接口
     enable-request-cache: true  # 启用请求缓存
     enable-host: false  # 禁用host显示
+
+minio:
+  endpoint: http://${test.minio.host}:${test.minio.port}
+  bucket-name: ${test.minio.bucketName}
+  username: ${test.minio.username}
+  password: ${test.minio.password}
+  url-expiry: 604800  # URL过期时间（秒），默认7天
