@@ -1,6 +1,7 @@
 package com.ai.exam.service.Impl;
 
 import com.ai.exam.entity.Category;
+import com.ai.exam.entity.Question;
 import com.ai.exam.mapper.CategoryMapper;
 import com.ai.exam.mapper.QuestionMapper;
 import com.ai.exam.service.CategoryService;
@@ -34,6 +35,41 @@ public class CategoryServiceImpl implements CategoryService {
         fillQuestionCount(allCategories);
         return buildTree(allCategories);
 
+    }
+
+    @Override
+    public void addCategory(Category category) {
+        categoryMapper.insert(category);
+    }
+
+    @Override
+    public void updateCategory(Category category) {
+        categoryMapper.updateById(category);
+    }
+
+    @Override
+    public void deleteCategory(Long id) {
+        Category category = categoryMapper.selectById(id);
+        if (category != null && category.getParentId() == 0) {
+            throw new RuntimeException("不允许删除固定的一级分类");
+        }
+
+        Long childCount = categoryMapper.selectCount(
+                new LambdaQueryWrapper<Category>()
+                        .eq(Category::getParentId, id)
+        );
+        if (childCount > 0) {
+            throw new RuntimeException("该分类下有子分类，无法删除");
+        }
+        Long questionCount = questionMapper.selectCount(
+                new LambdaQueryWrapper<Question>()
+                        .eq(Question::getCategoryId, id)
+        );
+        if (questionCount > 0) {
+            throw new RuntimeException("该分类下有题目，无法删除");
+        }
+
+        categoryMapper.deleteById(id);
     }
 
     private List<Category> buildTree(List<Category> allCategories) {
