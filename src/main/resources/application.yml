@@ -69,7 +69,8 @@ knife4j:
     enable-filter-multipart-apis: false  # 不过滤文件上传接口
     enable-request-cache: true  # 启用请求缓存
     enable-host: false  # 禁用host显示
-
+springdoc:
+      default-flat-param-object: true
 minio:
   endpoint: http://${test.minio.host}:${test.minio.port}
   bucket-name: ${test.minio.bucketName}
