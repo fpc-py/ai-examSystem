@@ -3,6 +3,8 @@ package com.ai.exam.service;
 import com.ai.exam.entity.Question;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 public interface QuestionService extends IService<Question> {
 
     Question getQuestionWithDetails(Long id);
@@ -11,4 +13,6 @@ public interface QuestionService extends IService<Question> {
     void saveQuestionWithDetails(Question question);
 
     void updateQuestionWithDetails(Question question);
+
+    List<Question> getPopularQuestions(Integer size);
 }

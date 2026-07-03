@@ -129,4 +129,36 @@ public class QuestionController {
             return Result.error("题目删除失败");
         }
     }
+
+    @GetMapping("/popular")
+    @Operation(summary = "获取热门题目", description = "获取访问次数最多的热门题目，用于首页推荐展示")
+    public Result<List<Question>> getPopularQuestions(@RequestParam(defaultValue = "10") Integer size) {
+        try {
+            List<Question> questions = questionService.getPopularQuestions(size);
+
+            if (questions.size() < size) {
+                int needMore = size - questions.size();
+
+                List<Long> existIds = questions.stream()
+                        .map(Question::getId)
+                        .collect(Collectors.toList());
+
+                QueryWrapper<Question> queryWrapper = new QueryWrapper<>();
+                if (!existIds.isEmpty()) {
+                    queryWrapper.notIn("id", existIds);
+                }
+                queryWrapper.orderByDesc("create_time")
+                        .last("LIMIT " + needMore);
+
+                List<Question> latestQuestions = questionService.list(queryWrapper);
+                fillQuestionsDetailsBatch(latestQuestions);
+
+                questions.addAll(latestQuestions);
+            }
+
+            return Result.success(questions);
+        } catch (Exception e) {
+            return Result.error("获取热门题目失败：" + e.getMessage());
+        }
+    }
 }
