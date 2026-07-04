@@ -1,6 +1,7 @@
 package com.ai.exam.service.Impl;
 
 import com.ai.exam.common.CacheConstants;
+import com.ai.exam.dto.QuestionImportDTO;
 import com.ai.exam.entity.Question;
 import com.ai.exam.entity.QuestionAnswer;
 import com.ai.exam.entity.QuestionChoice;
@@ -221,6 +222,61 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         }
 
 
+    }
+
+    @Override
+    @Transactional
+    public int batchImportQuestions(List<QuestionImportDTO> questions) {
+        if (CollectionUtils.isEmpty(questions)) {
+            return 0;
+        }
+        int successCount = 0;
+        for (QuestionImportDTO importDTO : questions) {
+            try {
+                Question question = convertImportDTOToQuestion(importDTO);
+                saveQuestionWithDetails(question);
+                successCount++;
+            } catch (Exception e) {
+                log.error("导入题目失败: {}, 错误: {}", importDTO.getTitle(), e.getMessage());
+            }
+        }
+
+        return successCount;
+
+    }
+
+    private Question convertImportDTOToQuestion(QuestionImportDTO importDTO) {
+        Question question = new Question();
+
+        question.setTitle(importDTO.getTitle());
+        question.setType(importDTO.getType());
+        question.setMulti(importDTO.getMulti() != null ? importDTO.getMulti() : false);
+        question.setCategoryId(importDTO.getCategoryId() != null ? importDTO.getCategoryId() : 1L);
+        question.setDifficulty(importDTO.getDifficulty() != null ? importDTO.getDifficulty() : "MEDIUM");
+        question.setScore(importDTO.getScore() != null ? importDTO.getScore() : 5);
+        question.setAnalysis(importDTO.getAnalysis());
+        question.setCreateTime(new Date());
+        question.setUpdateTime(new Date());
+
+        if ("CHOICE".equals(importDTO.getType()) && !CollectionUtils.isEmpty(importDTO.getChoices())) {
+            List<QuestionChoice> choices = new ArrayList<>();
+            for (QuestionImportDTO.ChoiceImportDTO choiceDTO : importDTO.getChoices()) {
+                QuestionChoice choice = new QuestionChoice();
+                choice.setContent(choiceDTO.getContent());
+                choice.setIsCorrect(choiceDTO.getIsCorrect() != null ? choiceDTO.getIsCorrect() : false);
+                choice.setSort(choiceDTO.getSort() != null ? choiceDTO.getSort() : choices.size() + 1);
+                choices.add(choice);
+            }
+            question.setChoices(choices);
+        } else if (importDTO.getAnswer() != null) {
+            // 判断题和简答题的答案
+            QuestionAnswer answer = new QuestionAnswer();
+            answer.setAnswer(importDTO.getAnswer());
+            answer.setKeywords(importDTO.getKeywords());
+            question.setAnswer(answer);
+        }
+
+        return question;
     }
 
     private List<Question> getLatestQuestions(int limit) {

@@ -1,5 +1,6 @@
 package com.ai.exam.service;
 
+import com.ai.exam.dto.QuestionImportDTO;
 import com.ai.exam.entity.Question;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -15,4 +16,6 @@ public interface QuestionService extends IService<Question> {
     void updateQuestionWithDetails(Question question);
 
     List<Question> getPopularQuestions(Integer size);
+
+    int batchImportQuestions(List<QuestionImportDTO> questions);
 }

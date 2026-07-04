@@ -46,7 +46,7 @@ mybatis-plus:
 logging:
   level:
     com.exam: debug  # 项目包路径的日志级别
-    org.springframework.web: debug  # Spring Web日志级别
+    org.springframework.web: info  # Spring Web日志级别
 
 
 
