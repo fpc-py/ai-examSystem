@@ -77,3 +77,12 @@ minio:
   username: ${test.minio.username}
   password: ${test.minio.password}
   url-expiry: 604800  # URL过期时间（秒），默认7天
+
+# AI 服务配置
+kimi:
+  api:
+    base-url: ${test.kimi.api.base-url}
+    api-key: ${test.kimi.api.api-key}
+    model: ${test.kimi.api.model}
+    max-tokens: ${test.kimi.api.max-tokens}
+    temperature: ${test.kimi.api.temperature}
