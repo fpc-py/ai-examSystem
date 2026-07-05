@@ -1,6 +1,7 @@
 package com.ai.exam.controller;
 
 import com.ai.exam.common.Result;
+import com.ai.exam.dto.AiPaperDTO;
 import com.ai.exam.dto.PaperDTO;
 import com.ai.exam.entity.Paper;
 import com.ai.exam.service.PaperService;
@@ -53,5 +54,46 @@ public class PaperController {
     public Result<Paper> updatePaper(@PathVariable Integer id, @RequestBody PaperDTO dto){
         Paper updatedPaper = paperService.updatePaper(id, dto);
         return Result.success(updatedPaper, "试卷更新成功");
+    }
+
+    @PostMapping("/ai")
+    @Operation(summary = "AI智能组卷", description = "基于设定的规则（题型分布、难度配比等）使用AI自动生成试卷")
+    public Result<Paper> createPaperWithAI(@RequestBody AiPaperDTO dto){
+        Paper paper = paperService.createPaperWithAI(dto);
+        return Result.success(paper, "AI智能组卷成功");
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "获取试卷详情", description = "获取试卷的详细信息，包括试卷基本信息和包含的所有题目")
+    public Result<Paper> getPaperById(@PathVariable Integer id){
+        Paper paper = paperService.getPaperWithQuestions(id);
+        return Result.success(paper);
+    }
+
+
+    @PostMapping("/{id}/status")
+    @Operation(summary = "更新试卷状态", description = "修改试卷状态：发布试卷供学生考试或停止试卷禁止考试")
+    public Result<Void> updatePaperStatus(@PathVariable Integer id, @RequestParam String status){
+        paperService.updatePaperStatus(id, status);
+        return Result.success(null, "状态更新成功");
+    }
+
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除试卷", description = "删除指定的试卷，注意：已发布的试卷不能删除")
+    public Result<Void> deletePaper( @PathVariable Integer id){
+        Paper paper = paperService.getById(id);
+        if (paper == null) {
+            return Result.error("试卷不存在");
+        }
+        if ("PUBLISHED".equals(paper.getStatus())) {
+            return Result.error("已发布的试卷不能删除，请先停止发布");
+        }
+        boolean deleted = paperService.removeById(id);
+        if (deleted) {
+            return Result.success(null, "试卷删除成功");
+        } else {
+            return Result.error("试卷删除失败");
+        }
     }
 }
