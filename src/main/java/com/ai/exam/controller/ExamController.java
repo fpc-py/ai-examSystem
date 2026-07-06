@@ -48,4 +48,23 @@ public class ExamController {
         return Result.success(examRecord, "试卷批阅完成");
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "查询考试记录详情", description = "获取指定考试记录的详细信息，包括答题情况和得分")
+    public Result<ExamRecord> getExamRecordById(
+            @Parameter(description = "考试记录ID") @PathVariable Integer id) {
+        ExamRecord record = examService.getExamRecordDetail(id);
+        return Result.success(record);
+    }
+
+    @GetMapping("/records")
+    @Operation(summary = "获取考试记录列表", description = "获取所有考试记录列表，包含基本信息和成绩")
+    public Result<List<ExamRecord>> getMyRecords() {
+        // 由于没有用户登录系统，返回所有考试记录  // 返回所有考试记录
+        List<ExamRecord> records = examService.list();
+        // 为每个记录加载试卷信息  // 补充试卷详细信息
+        records.forEach(record -> {
+            record.setPaper(paperService.getPaperWithQuestions(record.getExamId()));
+        });
+        return Result.success(records);
+    }
 }

@@ -62,7 +62,7 @@ public class ExamServiceImpl extends ServiceImpl<ExamRecordMapper, ExamRecord> i
         }
 
         answers.forEach(answerDTO->{
-            AnswerRecord answerRecord = new AnswerRecord();
+            AnswerRecord answerRecord = new AnswerRecord(examRecordId,answerDTO.getQuestionId(), answerDTO.getUserAnswer());
             answerRecordMapper.insert(answerRecord);
         });
 
@@ -201,6 +201,32 @@ public class ExamServiceImpl extends ServiceImpl<ExamRecordMapper, ExamRecord> i
 
         log.info("AI智能判卷完成，考试记录ID: {}, 总分: {}/{}",
                 examRecordId, totalScore, paper.getTotalScore());
+
+        return examRecord;
+    }
+
+    @Override
+    public ExamRecord getExamRecordDetail(Integer id) {
+
+        ExamRecord examRecord = this.getById(id);
+        if (examRecord == null) {
+            throw new RuntimeException("考试记录不存在");
+        }
+        Paper paper = paperService.getPaperWithQuestions(examRecord.getExamId());
+        examRecord.setPaper(paper);
+        List<AnswerRecord> answerRecords = answerRecordMapper.selectList(
+                new QueryWrapper<AnswerRecord>().eq("exam_record_id", id));
+
+        // 新增：按试卷题目顺序排序答题记录，保证前端展示顺序和考试时一致
+        if (paper != null && paper.getQuestions() != null && !answerRecords.isEmpty()) {
+            List<Long> questionOrder = paper.getQuestions().stream().map(Question::getId).toList();
+            answerRecords.sort((a, b) -> {
+                int idxA = questionOrder.indexOf(a.getQuestionId().longValue());
+                int idxB = questionOrder.indexOf(b.getQuestionId().longValue());
+                return Integer.compare(idxA, idxB);
+            });
+        }
+        examRecord.setAnswerRecords(answerRecords);
 
         return examRecord;
     }

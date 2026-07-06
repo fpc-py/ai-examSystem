@@ -1,13 +1,18 @@
 package com.ai.exam.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 @Data
 @NoArgsConstructor
+@TableName(value ="answer_record")
 public class AnswerRecord implements Serializable {
+    @TableId(type = IdType.AUTO)
     private Integer id;
     private Integer examRecordId;
     private Integer questionId;

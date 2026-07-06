@@ -17,4 +17,6 @@ public interface ExamService extends IService<ExamRecord> {
     void submitAnswers(Integer examRecordId, List<SubmitAnswerDTO> answers);
 
     ExamRecord gradeExam(Integer examRecordId);
+
+    ExamRecord getExamRecordDetail(Integer id);
 }
