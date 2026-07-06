@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ai.exam.mapper.ExamRecordMapper">
+    <select id="selectExamRanking" resultType="com.ai.exam.vo.ExamRankingVO">
+        SELECT er.id,
+               er.student_name as studentName,
+               er.score,
+               er.exam_id      as examId,
+               p.name          as paperName,
+               p.total_score   as paperTotalScore,
+               er.start_time   as startTime,
+               er.end_time     as endTime,
+
+               CASE
+                   WHEN er.end_time IS NOT NULL AND er.start_time IS NOT NULL
+                       THEN TIMESTAMPDIFF(MINUTE,er.start_time, er.end_time)
+                   ELSE NULL
+                   END         as duration
+        FROM exam_records er
+        LEFT JOIN paper p ON er.exam_id = p.id
+        WHERE er.status = '已批阅'
+        <if test="paperId != null">
+            AND er.exam_id = #{paperId}
+        </if>
+        ORDER BY er.score DESC,duration ASC
+        <if test="limit != null and limit>0">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+</mapper>
