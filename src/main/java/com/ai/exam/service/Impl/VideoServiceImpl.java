@@ -1,8 +1,10 @@
 package com.ai.exam.service.Impl;
 
 import com.ai.exam.entity.Video;
+import com.ai.exam.entity.VideoCategory;
 import com.ai.exam.entity.VideoLike;
 import com.ai.exam.entity.VideoView;
+import com.ai.exam.mapper.VideoCategoryMapper;
 import com.ai.exam.mapper.VideoLikeMapper;
 import com.ai.exam.mapper.VideoMapper;
 import com.ai.exam.mapper.VideoViewMapper;
@@ -37,6 +39,10 @@ public class VideoServiceImpl implements VideoService {
 
     @Autowired
     private VideoViewMapper videoViewMapper;
+
+    @Autowired
+    private VideoCategoryMapper videoCategoryMapper;
+
 
     @Override
     public IPage<Video> getVideoForAdmin(Integer page, Integer size, Integer status, Integer uploaderType, String keyword) {
@@ -178,6 +184,176 @@ public class VideoServiceImpl implements VideoService {
         stats.put("dailyViewStats", dailyStats);
 
         return stats;
+    }
+
+    @Override
+    public IPage<Video> getPublishedVideos(Integer page, Integer size, Long categoryId, String keyword, HttpServletRequest request) {
+        Page<Video> pageObj = new Page<>(page, size);
+        IPage<Video> result = videoMapper.getPublishedVideosPage(pageObj, categoryId, keyword);
+
+        // 如果有IP，填充点赞状态
+        if (request != null) {
+            String userIp = IpUtils.getClientIp(request);
+            result.getRecords().forEach(video -> {
+                boolean isLiked = videoLikeMapper.isLikedByIp(video.getId(), userIp);
+                video.setIsLiked(isLiked);
+                // 格式化时长和文件大小
+                formatVideoInfo(video);
+            });
+        }
+
+        return result;
+    }
+
+    @Override
+    public Video getVideoDetail(Long id, HttpServletRequest request) {
+        Video video = videoMapper.selectById(id);
+        if (video == null) {
+            throw new RuntimeException("视频不存在");
+        }
+
+        // 只有已发布的视频才能查看详情
+        if (video.getStatus() != Video.STATUS_PUBLISHED) {
+            throw new RuntimeException("视频未发布或已下架");
+        }
+
+        // 获取分类名称并赋值
+        if (video.getCategoryId() != null) {
+            VideoCategory category = videoCategoryMapper.selectById(video.getCategoryId()); // 查询分类信息
+            if (category != null) {
+                video.setCategoryName(category.getName()); // 设置分类名称
+            } else {
+                video.setCategoryName("未分类"); // 分类不存在时显示未分类
+            }
+        } else {
+            video.setCategoryName("未分类"); // 没有分类ID时显示未分类
+        }
+
+        // 如果有IP，填充点赞状态
+        if (request != null) {
+            String userIp = IpUtils.getClientIp(request);
+            boolean isLiked = videoLikeMapper.isLikedByIp(id, userIp);
+            video.setIsLiked(isLiked);
+        }
+
+        // 格式化信息
+        formatVideoInfo(video);
+
+        return video;
+    }
+
+    @Override
+    public List<Video> getPopularVideos(Integer limit) {
+        List<Video> videos = videoMapper.getPopularVideos(limit);
+        videos.forEach(this::formatVideoInfo);
+        return videos;
+    }
+
+    @Override
+    public List<Video> getLatestVideos(Integer limit) {
+        List<Video> videos = videoMapper.getLatestVideos(limit);
+        videos.forEach(this::formatVideoInfo);
+        return videos;
+    }
+
+    @Override
+    public void recordVideoView(Long videoId, Integer viewDuration, HttpServletRequest request) {
+        if (request == null) return;
+
+        String userIp = IpUtils.getClientIp(request);
+        String userAgent = request.getHeader("User-Agent");
+
+        // 创建观看记录
+        VideoView videoView = new VideoView();
+        videoView.setVideoId(videoId);
+        videoView.setUserIp(userIp);
+        videoView.setUserAgent(userAgent);
+        videoView.setViewDuration(viewDuration);
+        videoView.setCreatedAt(LocalDateTime.now());
+
+        videoViewMapper.insert(videoView);
+
+        // 增加视频观看次数
+        videoMapper.incrementViewCount(videoId);
+    }
+
+    @Override
+    public boolean toggleVideoLike(Long videoId, HttpServletRequest request) {
+        if (request == null) {
+            throw new RuntimeException("请求信息为空");
+        }
+
+        String userIp = IpUtils.getClientIp(request);
+        String userAgent = request.getHeader("User-Agent");
+
+        // 检查是否已点赞
+        boolean isLiked = videoLikeMapper.isLikedByIp(videoId, userIp);
+
+        if (isLiked) {
+            // 取消点赞
+            videoLikeMapper.delete(
+                    new LambdaQueryWrapper<VideoLike>()
+                            .eq(VideoLike::getVideoId, videoId)
+                            .eq(VideoLike::getUserIp, userIp)
+            );
+            // 减少点赞数
+            videoMapper.decrementLikeCount(videoId);
+            return false;
+        } else {
+            // 添加点赞
+            VideoLike videoLike = new VideoLike();
+            videoLike.setVideoId(videoId);
+            videoLike.setUserIp(userIp);
+            videoLike.setUserAgent(userAgent);
+            videoLike.setCreatedAt(LocalDateTime.now());
+
+            videoLikeMapper.insert(videoLike);
+            // 增加点赞数
+            videoMapper.incrementLikeCount(videoId);
+            return true;
+        }
+    }
+
+    @Override
+    public Map<String, Object> submitVideo(Video video, MultipartFile videoFile, MultipartFile coverFile) {
+        Map<String, Object> result = new HashMap<>();
+
+        if (videoFile == null || videoFile.isEmpty()) {
+            throw new RuntimeException("视频文件不能为空");
+        }
+
+        try {
+            // 上传视频文件
+            Map<String, Object> videoUploadResult = fileUploadService.uploadFile(videoFile, "videos/original/");
+            video.setFileUrl(videoUploadResult.get("url").toString());
+            video.setFileSize(videoFile.getSize());
+
+            // 上传封面文件（可选）
+            if (coverFile != null && !coverFile.isEmpty()) {
+                Map<String, Object> coverUploadResult = fileUploadService.uploadFile(coverFile, "videos/covers/");
+                video.setCoverUrl(coverUploadResult.get("url").toString());
+            }
+
+            // 设置用户投稿默认值
+            video.setUploaderType(Video.UPLOADER_TYPE_USER);
+            video.setStatus(Video.STATUS_PENDING); // 待审核
+            video.setViewCount(0L);
+            video.setLikeCount(0L);
+            video.setCreatedAt(LocalDateTime.now());
+            video.setUpdatedAt(LocalDateTime.now());
+
+            // 保存视频信息
+            videoMapper.insert(video);
+
+            result.put("success", true);
+            result.put("message", "视频投稿成功，请等待审核");
+            result.put("videoId", video.getId());
+
+        } catch (Exception e) {
+            throw new RuntimeException("视频上传失败：" + e.getMessage());
+        }
+
+        return result;
     }
 
     private void formatVideoStatus(Video video) {

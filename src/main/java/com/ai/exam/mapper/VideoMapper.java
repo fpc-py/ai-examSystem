@@ -7,7 +7,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
+import java.util.List;
 import java.util.Map;
 
 @Mapper
@@ -43,5 +45,42 @@ public interface VideoMapper extends BaseMapper<Video> {
             "FROM videos")
     Map<String, Object> getVideoStatistics();
 
+    @Select("<script>" +
+            "SELECT v.*, vc.name as category_name " +
+            "FROM videos v " +
+            "LEFT JOIN video_categories vc ON v.category_id = vc.id " +
+            "WHERE v.status = 1 " +
+            "<if test='categoryId != null'> AND v.category_id = #{categoryId} </if>" +
+            "<if test='keyword != null and keyword != \"\"'> " +
+            "AND (v.title LIKE CONCAT('%', #{keyword}, '%') " +
+            "OR v.tags LIKE CONCAT('%', #{keyword}, '%')) " +
+            "</if>" +
+            "ORDER BY v.created_at DESC" +
+            "</script>")
+    IPage<Video> getPublishedVideosPage(Page<Video> pageObj, Long categoryId, String keyword);
 
+    @Select("SELECT v.*, vc.name as category_name " +
+            "FROM videos v " +
+            "LEFT JOIN video_categories vc ON v.category_id = vc.id " +
+            "WHERE v.status = 1 " +
+            "ORDER BY v.view_count DESC " +
+            "LIMIT #{limit}")
+    List<Video> getPopularVideos(Integer limit);
+
+    @Select("SELECT v.*, vc.name as category_name " +
+            "FROM videos v " +
+            "LEFT JOIN video_categories vc ON v.category_id = vc.id " +
+            "WHERE v.status = 1 " +
+            "ORDER BY v.created_at DESC " +
+            "LIMIT #{limit}")
+    List<Video> getLatestVideos(Integer limit);
+
+    @Update("UPDATE videos SET view_count = view_count + 1 WHERE id = #{videoId}")
+    void incrementViewCount(Long videoId);
+
+
+    @Update("UPDATE videos SET like_count = like_count + 1 WHERE id = #{videoId}")
+    void incrementLikeCount(Long videoId);
+    @Update("UPDATE videos SET like_count = like_count - 1 WHERE id = #{videoId} AND like_count > 0")
+    void decrementLikeCount(Long videoId);
 }

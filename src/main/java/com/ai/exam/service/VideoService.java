@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 public interface VideoService {
@@ -24,5 +25,19 @@ public interface VideoService {
 
 
     Map<String, Object> getVideoDetailStats(Long videoId, Integer days);
+
+    IPage<Video> getPublishedVideos(Integer page, Integer size, Long categoryId, String keyword, HttpServletRequest request);
+
+    Video getVideoDetail(Long id, HttpServletRequest request);
+
+    List<Video> getPopularVideos(Integer limit);
+
+    List<Video> getLatestVideos(Integer limit);
+
+    void recordVideoView(Long videoId, Integer viewDuration, HttpServletRequest request);
+
+    boolean toggleVideoLike(Long videoId, HttpServletRequest request);
+
+    Map<String, Object> submitVideo(Video video, MultipartFile videoFile, MultipartFile coverFile);
 
 }
