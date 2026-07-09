@@ -1,11 +1,15 @@
 package com.ai.exam.service.Impl;
 
 import com.ai.exam.entity.Video;
+import com.ai.exam.entity.VideoLike;
+import com.ai.exam.entity.VideoView;
 import com.ai.exam.mapper.VideoLikeMapper;
 import com.ai.exam.mapper.VideoMapper;
+import com.ai.exam.mapper.VideoViewMapper;
 import com.ai.exam.service.FileUploadService;
 import com.ai.exam.service.VideoService;
 import com.ai.exam.utils.IpUtils;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -29,6 +34,9 @@ public class VideoServiceImpl implements VideoService {
 
     @Autowired
     private FileUploadService fileUploadService;
+
+    @Autowired
+    private VideoViewMapper videoViewMapper;
 
     @Override
     public IPage<Video> getVideoForAdmin(Integer page, Integer size, Integer status, Integer uploaderType, String keyword) {
@@ -83,6 +91,93 @@ public class VideoServiceImpl implements VideoService {
     }
 
         return result;
+    }
+
+    @Override
+    public void auditVideo(Long videoId, Integer status, String reason, Long adminId) {
+        Video video = videoMapper.selectById(videoId);
+        if (video == null) {
+            throw new RuntimeException("视频不存在");
+        }
+
+        if (video.getStatus() != Video.STATUS_PENDING) {
+            throw new RuntimeException("只能审核待审核状态的视频");
+        }
+
+        if (status == Video.STATUS_REJECTED && (reason == null || reason.trim().isEmpty())) {
+            throw new RuntimeException("拒绝审核时必须填写拒绝原因");
+        }
+
+        // 更新审核信息
+        video.setStatus(status);
+        video.setAuditAdminId(adminId);
+        video.setAuditTime(LocalDateTime.now());
+        video.setAuditReason(reason);
+        video.setUpdatedAt(LocalDateTime.now());
+
+        videoMapper.updateById(video);
+    }
+
+    @Override
+    public void offlineVideo(Long videoId, Long adminId) {
+        Video video = videoMapper.selectById(videoId);
+        if (video == null) {
+            throw new RuntimeException("视频不存在");
+        }
+
+        if (video.getStatus() != Video.STATUS_PUBLISHED) {
+            throw new RuntimeException("只能下架已发布的视频");
+        }
+
+        video.setStatus(Video.STATUS_OFFLINE);
+        video.setAuditAdminId(adminId);
+        video.setAuditTime(LocalDateTime.now());
+        video.setUpdatedAt(LocalDateTime.now());
+
+        videoMapper.updateById(video);
+    }
+
+    @Override
+    public void deleteVideo(Long videoId) {
+        Video video = videoMapper.selectById(videoId);
+        if (video == null) {
+            throw new RuntimeException("视频不存在");
+        }
+
+        // 删除相关数据
+        videoLikeMapper.delete(new LambdaQueryWrapper<VideoLike>().eq(VideoLike::getVideoId, videoId));
+        videoViewMapper.delete(new LambdaQueryWrapper<VideoView>().eq(VideoView::getVideoId, videoId));
+
+        // 删除视频记录
+        videoMapper.deleteById(videoId);
+
+        // TODO: 删除文件存储中的视频文件和封面文件
+
+    }
+
+    @Override
+    public Map<String, Object> getVideoStatistics() {
+        return videoMapper.getVideoStatistics();
+    }
+
+    @Override
+    public Map<String, Object> getVideoDetailStats(Long videoId, Integer days) {
+        Map<String, Object> stats = new HashMap<>();
+
+        // 基本统计
+        Long viewCount = videoViewMapper.getViewCountByVideoId(videoId);
+        Long likeCount = videoLikeMapper.getLikeCountByVideoId(videoId);
+        Double avgDuration = videoViewMapper.getAverageViewDuration(videoId);
+
+        stats.put("viewCount", viewCount);
+        stats.put("likeCount", likeCount);
+        stats.put("averageViewDuration", avgDuration);
+
+        // 按日期统计
+        List<Map<String, Object>> dailyStats = videoViewMapper.getViewStatsByDate(videoId, days);
+        stats.put("dailyViewStats", dailyStats);
+
+        return stats;
     }
 
     private void formatVideoStatus(Video video) {

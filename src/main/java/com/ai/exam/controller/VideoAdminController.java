@@ -60,4 +60,61 @@ public class VideoAdminController {
         Map<String, Object> result = videoService.uploadVideoByAdmin(video, videoFile, coverFile, adminId);
         return Result.success(result);
     }
+
+    @PostMapping("/{videoId}/audit")
+    @Operation(summary = "审核视频", description = "管理员审核用户投稿的视频，可以通过或拒绝")
+    public Result<Void> auditVideo(
+            @Parameter(description = "视频ID") @PathVariable Long videoId,
+            @Parameter(description = "审核状态：1-通过，2-拒绝") @RequestParam Integer status,
+            @Parameter(description = "审核原因（拒绝时必填）") @RequestParam(required = false) String reason) {
+
+        // TODO: 从当前登录用户获取管理员ID，这里暂时使用固定值
+        Long adminId = 1L;
+
+        videoService.auditVideo(videoId, status, reason, adminId);
+        return Result.success(null);
+    }
+
+
+    @PostMapping("/{videoId}/offline")
+    @Operation(summary = "下架视频", description = "管理员将已发布的视频下架")
+    public Result<Void> offlineVideo(
+            @Parameter(description = "视频ID") @PathVariable Long videoId) {
+
+        // TODO: 从当前登录用户获取管理员ID，这里暂时使用固定值
+        Long adminId = 1L;
+
+        videoService.offlineVideo(videoId, adminId);
+        return Result.success(null);
+    }
+
+
+    @DeleteMapping("/{videoId}")
+    @Operation(summary = "删除视频", description = "管理员删除视频（危险操作，会删除所有相关数据）")
+    public Result<Void> deleteVideo(
+            @Parameter(description = "视频ID") @PathVariable Long videoId) {
+
+        videoService.deleteVideo(videoId);
+        return Result.success(null);
+    }
+
+
+    @GetMapping("/statistics")
+    @Operation(summary = "获取视频统计", description = "获取视频相关的统计数据，用于仪表板展示")
+    public Result<Map<String, Object>> getVideoStatistics() {
+        Map<String, Object> statistics = videoService.getVideoStatistics();
+        return Result.success(statistics);
+    }
+
+
+    @GetMapping("/{videoId}/stats")
+    @Operation(summary = "获取视频详细统计", description = "获取指定视频的详细统计数据，包括观看、点赞等趋势")
+    public Result<Map<String, Object>> getVideoDetailStats(
+            @Parameter(description = "视频ID") @PathVariable Long videoId,
+            @Parameter(description = "统计天数，默认30天") @RequestParam(defaultValue = "30") Integer days) {
+
+        Map<String, Object> stats = videoService.getVideoDetailStats(videoId, days);
+        return Result.success(stats);
+    }
+
 }

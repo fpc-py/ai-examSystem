@@ -8,6 +8,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.Map;
+
 @Mapper
 public interface VideoMapper extends BaseMapper<Video> {
 
@@ -31,4 +33,15 @@ public interface VideoMapper extends BaseMapper<Video> {
                                    @Param("status") Integer status,
                                    @Param("uploaderType") Integer uploaderType,
                                    @Param("keyword") String keyword);
+    @Select("SELECT " +
+            "COUNT(*) as total_count, " +
+            "COUNT(CASE WHEN status = 0 THEN 1 END) as pending_count, " +
+            "COUNT(CASE WHEN status = 1 THEN 1 END) as published_count, " +
+            "COUNT(CASE WHEN status = 2 THEN 1 END) as rejected_count, " +
+            "COUNT(CASE WHEN uploader_type = 1 THEN 1 END) as user_upload_count, " +
+            "COUNT(CASE WHEN uploader_type = 2 THEN 1 END) as admin_upload_count " +
+            "FROM videos")
+    Map<String, Object> getVideoStatistics();
+
+
 }
