@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface VideoLikeMapper extends BaseMapper<VideoLike> {
     @Select("SELECT COUNT(*) > 0 FROM video_likes WHERE video_id = #{videoId} AND user_ip = #{userIp}")
+
     boolean isLikedByIp(@Param("videoId") Long id,@Param("userIp") String userIp);
 
     Long getLikeCountByVideoId(Long videoId);
