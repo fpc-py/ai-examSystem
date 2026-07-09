@@ -4,11 +4,10 @@ import com.ai.exam.common.Result;
 import com.ai.exam.entity.VideoCategory;
 import com.ai.exam.service.VideoCategoryService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -29,5 +28,57 @@ public class VideoCategoryController {
     @Operation(summary = "获取分类树形结构", description = "获取视频分类的树形层级结构，用于前端组件展示")
     public Result<List<VideoCategory>> getCategoryTree() {
         return Result.success(videoCategoryService.getCategoryTree());
+    }
+
+
+    @GetMapping("/top")
+    @Operation(summary = "获取顶级分类", description = "获取所有启用的顶级分类，用于导航菜单")
+    public Result<List<VideoCategory>> getTopCategories() {
+        return Result.success(videoCategoryService.getTopCategories());
+    }
+
+
+
+    @GetMapping("/children/{parentId}")
+    @Operation(summary = "获取子分类", description = "根据父级分类ID获取其下的子分类列表")
+    public Result<List<VideoCategory>> getChildCategories(
+            @Parameter(description = "父级分类ID") @PathVariable Long parentId) {
+        return Result.success(videoCategoryService.getChildCategories(parentId));
+    }
+
+
+
+
+    @GetMapping("/{id}")
+    @Operation(summary = "获取分类详情", description = "根据分类ID获取详细信息，包含视频数量和父级分类名称")
+    public Result<VideoCategory> getCategoryById(
+            @Parameter(description = "分类ID") @PathVariable Long id) {
+        return Result.success(videoCategoryService.getCategoryById(id));
+    }
+
+
+    @PostMapping
+    @Operation(summary = "添加新分类", description = "创建新的视频分类，支持设置父分类实现层级结构")
+    public Result<Void> addCategory(@RequestBody VideoCategory category) {
+        videoCategoryService.addCategory(category);
+        return Result.success(null);
+    }
+
+
+    @PutMapping
+    @Operation(summary = "更新分类信息", description = "修改分类的名称、描述、排序等信息")
+    public Result<Void> updateCategory(@RequestBody VideoCategory category) {
+        videoCategoryService.updateCategory(category);
+        return Result.success(null);
+    }
+
+
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除分类", description = "删除指定的视频分类，注意：删除前需确保分类下没有视频")
+    public Result<Void> deleteCategory(
+            @Parameter(description = "分类ID") @PathVariable Long id) {
+        videoCategoryService.deleteCategory(id);
+        return Result.success(null);
     }
 }

@@ -1,5 +1,6 @@
 package com.ai.exam.service.Impl;
 
+import com.ai.exam.entity.Video;
 import com.ai.exam.entity.VideoCategory;
 import com.ai.exam.mapper.VideoCategoryMapper;
 import com.ai.exam.mapper.VideoMapper;
@@ -48,6 +49,139 @@ public class VideoCategoryServiceImpl implements VideoCategoryService {
 
         // 构建树形结构
         return buildTree(allCategories);
+    }
+
+    @Override
+    public void deleteCategory(Long id) {
+        VideoCategory category = videoCategoryMapper.selectById(id);
+        if (category == null) {
+            throw new RuntimeException("分类不存在");
+        }
+
+        // 检查是否有子分类
+        Long childCount = videoCategoryMapper.selectCount(
+                new LambdaQueryWrapper<VideoCategory>()
+                        .eq(VideoCategory::getParentId, id)
+        );
+        if (childCount > 0) {
+            throw new RuntimeException("该分类下有子分类，无法删除");
+        }
+
+        // 检查是否有视频
+        Long videoCount = videoMapper.selectCount(
+                new LambdaQueryWrapper<Video>()
+                        .eq(Video::getCategoryId, id)
+        );
+        if (videoCount > 0) {
+            throw new RuntimeException("该分类下有视频，无法删除");
+        }
+
+        videoCategoryMapper.deleteById(id);
+    }
+
+    @Override
+    public void updateCategory(VideoCategory category) {
+        VideoCategory existingCategory = videoCategoryMapper.selectById(category.getId());
+        if (existingCategory == null) {
+            throw new RuntimeException("分类不存在");
+        }
+
+        // 验证父级分类
+        if (category.getParentId() != null && category.getParentId() > 0) {
+            // 不能将自己设为父级分类
+            if (category.getParentId().equals(category.getId())) {
+                throw new RuntimeException("不能将自己设为父级分类");
+            }
+
+            // 验证父级分类是否存在
+            VideoCategory parentCategory = videoCategoryMapper.selectById(category.getParentId());
+            if (parentCategory == null) {
+                throw new RuntimeException("父级分类不存在");
+            }
+        }
+
+        // 检查同级分类名称是否重复
+        Long count = videoCategoryMapper.selectCount(
+                new LambdaQueryWrapper<VideoCategory>()
+                        .eq(VideoCategory::getName, category.getName())
+                        .eq(VideoCategory::getParentId, category.getParentId() == null ? 0 : category.getParentId())
+                        .ne(VideoCategory::getId, category.getId())
+        );
+        if (count > 0) {
+            throw new RuntimeException("同级分类下已存在相同名称的分类");
+        }
+
+        videoCategoryMapper.updateById(category);
+    }
+
+    @Override
+    public void addCategory(VideoCategory category) {
+        // 验证父级分类是否存在
+        if (category.getParentId() != null && category.getParentId() > 0) {
+            VideoCategory parentCategory = videoCategoryMapper.selectById(category.getParentId());
+            if (parentCategory == null) {
+                throw new RuntimeException("父级分类不存在");
+            }
+            if (parentCategory.getStatus() == 0) {
+                throw new RuntimeException("父级分类已被禁用");
+            }
+        }
+
+        // 检查同级分类名称是否重复
+        Long count = videoCategoryMapper.selectCount(
+                new LambdaQueryWrapper<VideoCategory>()
+                        .eq(VideoCategory::getName, category.getName())
+                        .eq(VideoCategory::getParentId, category.getParentId() == null ? 0 : category.getParentId())
+        );
+        if (count > 0) {
+            throw new RuntimeException("同级分类下已存在相同名称的分类");
+        }
+
+        // 设置默认值
+        if (category.getParentId() == null) {
+            category.setParentId(0L);
+        }
+        if (category.getSortOrder() == null) {
+            category.setSortOrder(0);
+        }
+        if (category.getStatus() == null) {
+            category.setStatus(1);
+        }
+
+        videoCategoryMapper.insert(category);
+    }
+
+    @Override
+    public VideoCategory getCategoryById(Long id) {
+        VideoCategory category = videoCategoryMapper.selectById(id);
+        if (category != null) {
+            // 获取视频数量
+            Long videoCount = videoMapper.selectCount(
+                    new LambdaQueryWrapper<Video>()
+                            .eq(Video::getCategoryId, id)
+                            .eq(Video::getStatus, Video.STATUS_PUBLISHED)
+            );
+            category.setVideoCount(videoCount);
+
+            // 如果有父级分类，获取父级分类名称
+            if (category.getParentId() != null && category.getParentId() > 0) {
+                VideoCategory parentCategory = videoCategoryMapper.selectById(category.getParentId());
+                if (parentCategory != null) {
+                    category.setParentName(parentCategory.getName());
+                }
+            }
+        }
+        return category;
+    }
+
+    @Override
+    public List<VideoCategory> getTopCategories() {
+        return videoCategoryMapper.getTopCategories();
+    }
+
+    @Override
+    public List<VideoCategory> getChildCategories(Long parentId) {
+        return videoCategoryMapper.getChildCategories(parentId);
     }
 
     private List<VideoCategory> buildTree(List<VideoCategory> allCategories) {

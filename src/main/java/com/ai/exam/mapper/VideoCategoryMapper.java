@@ -18,5 +18,9 @@ public interface VideoCategoryMapper extends BaseMapper<VideoCategory> {
             @Result(property = "videoCount", column = "video_count")
     })
     List<Map<String, Object>> getCategoryVideoCount();
+    @Select("SELECT * FROM video_categories WHERE parent_id = 0 AND status = 1 ORDER BY sort_order ASC")
+    List<VideoCategory> getTopCategories();
 
+    @Select("SELECT * FROM video_categories WHERE parent_id = #{parentId} AND status = 1 ORDER BY sort_order ASC")
+    List<VideoCategory> getChildCategories(Long parentId);
 }

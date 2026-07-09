@@ -10,4 +10,17 @@ public interface VideoCategoryService {
     List<VideoCategory> getCategoryTree();
 
 
+    void deleteCategory(Long id);
+
+    void updateCategory(VideoCategory category);
+
+    void addCategory(VideoCategory category);
+
+    VideoCategory getCategoryById(Long id);
+
+    List<VideoCategory> getChildCategories(Long parentId);
+
+    List<VideoCategory> getTopCategories();
+
+
 }
